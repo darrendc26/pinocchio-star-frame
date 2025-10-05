@@ -1,0 +1,24 @@
+[package]
+name = "star_frame_idl"
+description = "IDL definitions for Star Frame"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[features]
+verifier = []
+
+[dependencies]
+# verifier
+codama-nodes = { workspace = true }
+hex = { workspace = true }
+derive_more = { workspace = true }
+serde = { workspace = true }
+solana-pubkey = { workspace = true }
+semver = { workspace = true }
+itertools = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
