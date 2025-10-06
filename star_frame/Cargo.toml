@@ -9,7 +9,14 @@ license.workspace = true
 repository.workspace = true
 
 [features]
+cleanup_rent_warning = []
+#idl = ["star_frame_idl", "serde_json"]
+test_helpers = []
 
 [dependencies]
+pinocchio = { workspace = true }
+bytemuck = { workspace = true }
+borsh = { workspace = true }
+star_frame_proc = { workspace = true }
 
 [dev-dependencies]

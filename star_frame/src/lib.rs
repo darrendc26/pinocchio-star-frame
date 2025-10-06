@@ -18,26 +18,26 @@
     clippy::non_canonical_partial_ord_impl
 )]
 
-pub extern crate advancer;
-pub extern crate borsh;
-pub extern crate bytemuck;
-pub extern crate derive_more;
-pub extern crate derive_where;
-pub extern crate fixed;
-pub extern crate itertools;
-pub extern crate num_traits;
-pub extern crate paste;
-pub extern crate pinocchio;
-pub extern crate self as star_frame;
-pub extern crate serde;
-#[cfg(all(feature = "idl", not(target_os = "solana")))]
-pub extern crate serde_json;
-pub extern crate solana_instruction;
-pub extern crate solana_pubkey;
-#[cfg(all(feature = "idl", not(target_os = "solana")))]
-pub extern crate star_frame_idl;
-pub extern crate static_assertions;
-pub extern crate typenum;
+// pub extern crate advancer;
+// pub extern crate borsh;
+// pub extern crate bytemuck;
+// pub extern crate derive_more;
+// pub extern crate derive_where;
+// pub extern crate fixed;
+// pub extern crate itertools;
+// pub extern crate num_traits;
+// pub extern crate paste;
+// pub extern crate pinocchio;
+// pub extern crate self as star_frame;
+// pub extern crate serde;
+// #[cfg(all(feature = "idl", not(target_os = "solana")))]
+// pub extern crate serde_json;
+// pub extern crate solana_instruction;
+// pub extern crate solana_pubkey;
+// #[cfg(all(feature = "idl", not(target_os = "solana")))]
+// pub extern crate star_frame_idl;
+// pub extern crate static_assertions;
+// pub extern crate typenum;
 
 // pub mod account_set;
 // pub mod align1;
@@ -50,8 +50,8 @@ pub extern crate typenum;
 // pub mod context;
 // #[cfg(all(feature = "idl", not(target_os = "solana")))]
 // pub mod idl;
-// pub mod instruction;
-// pub mod prelude;
+pub mod instruction;
+pub mod prelude;
 // pub mod program;
 // pub mod unsize;
 // pub mod util;
