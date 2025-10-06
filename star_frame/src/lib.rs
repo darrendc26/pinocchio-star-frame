@@ -47,7 +47,7 @@
 // mod entrypoint;
 // pub mod errors;
 
-// pub mod context;
+pub mod context;
 // #[cfg(all(feature = "idl", not(target_os = "solana")))]
 // pub mod idl;
 pub mod instruction;

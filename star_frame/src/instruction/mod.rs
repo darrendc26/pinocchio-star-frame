@@ -163,7 +163,6 @@ pub trait StarFrameInstruction: Pod + InstructionArgs {
     ///
     /// If trailing data is present, it will be deserialized from the bytes
     /// after the fixed-size Pod instruction data.
-    type TrailingData: BorshDeserialize + Default;
 
     /// The [`AccountSet`] used by this instruction.
     type Accounts<'decode, 'arg>: AccountSetDecode<'decode, Self::DecodeArg<'arg>>
@@ -175,12 +174,10 @@ pub trait StarFrameInstruction: Pod + InstructionArgs {
     /// # Arguments
     /// * `accounts` - The decoded and validated account set
     /// * `run_arg` - The run-time arguments from the Pod instruction data
-    /// * `trailing` - The deserialized trailing data (if any)
     /// * `ctx` - The execution context
     fn process(
         accounts: &mut Self::Accounts<'_, '_>,
         run_arg: Self::RunArg<'_>,
-        trailing: Self::TrailingData,
         ctx: &mut Context,
     ) -> Result<Self::ReturnType>;
 }
