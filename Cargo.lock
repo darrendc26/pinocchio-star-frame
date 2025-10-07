@@ -588,6 +588,9 @@ version = "0.26.1"
 [[package]]
 name = "star_frame_spl"
 version = "0.26.1"
+dependencies = [
+ "star_frame",
+]
 
 [[package]]
 name = "strsim"

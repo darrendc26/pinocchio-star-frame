@@ -1,8 +1,7 @@
 //! Processing and handling of instructions from a [`StarFrameProgram::entrypoint`].
 //!
-//! This implementation supports hybrid Pod + Borsh deserialization where:
-//! - Fixed-size instruction data is Pod (zero-copy, fast)
-//! - Variable-size data is Borsh-encoded trailing bytes (flexible)
+//! This implementation uses pure Pod/bytemuck deserialization for maximum performance.
+//! All instruction data must be fixed-size and Pod-compatible.
 
 use crate::{
     account_set::{AccountSetCleanup, AccountSetDecode, AccountSetValidate},
@@ -96,7 +95,7 @@ where
 }
 
 // Implement Debug if all argument types also implement Debug
-impl<'a, T> std::fmt::Debug for IxArgs<'a, T>
+impl<'a, T> Debug for IxArgs<'a, T>
 where
     T: InstructionArgs,
     T::DecodeArg<'a>: Debug,
@@ -144,25 +143,51 @@ impl<T, E> IxReturnType for Result<T, E> {
 
 /// An opinionated (and recommended) [`Instruction`] using [`AccountSet`] and other traits. Can be derived using the [`star_frame_instruction`] macro.
 ///
+/// # Pod Requirements
+///
+/// All instruction types must be Pod-compatible:
+/// - Must be `#[repr(C)]` for stable memory layout
+/// - No padding bytes (use explicit padding fields if needed)
+/// - Only fixed-size types (u8, u16, u32, u64, u128, i8-i128, [T; N], Pubkey)
+/// - No pointers, references, or dynamic types (String, Vec, Box, etc.)
+///
+/// # Example
+///
+/// ```rust,ignore
+/// #[repr(C)]
+/// #[derive(Copy, Clone, Pod, Zeroable)]
+/// pub struct Transfer {
+///     pub recipient: Pubkey,
+///     pub amount: u64,
+/// }
+///
+/// #[star_frame_instruction]
+/// impl Transfer {
+///     pub fn process(
+///         ctx: Context,
+///         accounts: &mut TransferAccounts,
+///     ) -> Result<()> {
+///         // Zero-copy access to instruction data
+///         let recipient = ctx.instruction_data.recipient;
+///         let amount = ctx.instruction_data.amount;
+///         // ...
+///     }
+/// }
+/// ```
+///
+/// # Processing Steps
+///
 /// The steps for how this implements [`Instruction::process_from_raw`] are as follows:
-/// 1. Decode the fixed-size Pod instruction data using [`bytemuck::from_bytes`].
-/// 2. Decode the trailing Borsh data (if present) using [`BorshDeserialize`].
-/// 3. Split Self into decode, validate, run, and cleanup args using [`InstructionArgs::split_to_args`].
-/// 4. Decode the accounts using [`Self::Accounts::decode_accounts`](AccountSetDecode::decode_accounts).
-/// 5. Validate the accounts using [`Self::Accounts::validate_accounts`](AccountSetValidate::validate_accounts).
-/// 6. Process the instruction using [`Self::process`].
-/// 7. Cleanup the accounts using [`Self::Accounts::cleanup_accounts`](AccountSetCleanup::cleanup_accounts).
-/// 8. Set the solana return data using [`bytemuck::bytes_of`] if it is not empty.
+/// 1. Decode Self from bytes using [`bytemuck::from_bytes`] (zero-copy).
+/// 2. Split Self into decode, validate, run, and cleanup args using [`InstructionArgs::split_to_args`].
+/// 3. Decode the accounts using [`Self::Accounts::decode_accounts`](AccountSetDecode::decode_accounts).
+/// 4. Validate the accounts using [`Self::Accounts::validate_accounts`](AccountSetValidate::validate_accounts).
+/// 5. Process the instruction using [`Self::process`].
+/// 6. Cleanup the accounts using [`Self::Accounts::cleanup_accounts`](AccountSetCleanup::cleanup_accounts).
+/// 7. Set the solana return data using [`bytemuck::bytes_of`] if it is not empty.
 pub trait StarFrameInstruction: Pod + InstructionArgs {
     /// The return type of this instruction.
     type ReturnType: NoUninit;
-
-    /// The trailing data type for variable-length data (Borsh-encoded).
-    ///
-    /// Set to `()` if no trailing data is needed.
-    ///
-    /// If trailing data is present, it will be deserialized from the bytes
-    /// after the fixed-size Pod instruction data.
 
     /// The [`AccountSet`] used by this instruction.
     type Accounts<'decode, 'arg>: AccountSetDecode<'decode, Self::DecodeArg<'arg>>
@@ -194,30 +219,20 @@ where
     ) -> Result<()> {
         let mut ctx = Context::new(program_id);
 
-        // Step 1: Parse the fixed-size Pod instruction data (zero-copy)
-        let pod_size = size_of::<T>();
+        // Step 1: Parse the fixed-size Pod instruction data (zero-copy, no allocation)
+        let expected_size = size_of::<T>();
         ensure!(
-            instruction_data.len() >= pod_size,
-            "Instruction data too small: expected at least {} bytes, got {}",
-            pod_size,
+            instruction_data.len() == expected_size,
+            "Invalid instruction data size: expected {} bytes, got {}",
+            expected_size,
             instruction_data.len()
         );
 
         // SAFETY: T is Pod, so it is safe to cast from bytes
-        let mut data: T = *bytemuck::from_bytes(&instruction_data[..pod_size]);
+        // This is a zero-copy operation - no deserialization overhead
+        let mut data: T = *bytemuck::from_bytes(instruction_data);
 
-        // Step 2: Parse trailing Borsh data (if present)
-        let trailing = if instruction_data.len() > pod_size {
-            <T as StarFrameInstruction>::TrailingData::deserialize(
-                &mut &instruction_data[pod_size..],
-            )
-            .ctx("Failed to deserialize trailing data")?
-        } else {
-            // No trailing data provided, use default
-            <T as StarFrameInstruction>::TrailingData::default()
-        };
-
-        // Step 3: Split instruction data into args
+        // Step 2: Split instruction data into args
         let IxArgs {
             decode,
             validate,
@@ -225,27 +240,26 @@ where
             cleanup,
         } = T::split_to_args(&mut data);
 
-        // Step 4: Decode accounts
+        // Step 3: Decode accounts
         let mut account_set: <T as StarFrameInstruction>::Accounts<'_, '_> =
             <T as StarFrameInstruction>::Accounts::decode_accounts(&mut accounts, decode, &mut ctx)
                 .ctx("Failed to decode accounts")?;
 
-        // Step 5: Validate accounts
+        // Step 4: Validate accounts
         account_set
             .validate_accounts(validate, &mut ctx)
             .ctx("Failed to validate accounts")?;
 
-        // Step 6: Process the instruction with trailing data
+        // Step 5: Process the instruction
         let ret: <T as StarFrameInstruction>::ReturnType =
-            T::process(&mut account_set, run, trailing, &mut ctx)
-                .ctx("Failed to run instruction")?;
+            T::process(&mut account_set, run, &mut ctx).ctx("Failed to run instruction")?;
 
-        // Step 7: Cleanup accounts
+        // Step 6: Cleanup accounts
         account_set
             .cleanup_accounts(cleanup, &mut ctx)
             .ctx("Failed to cleanup accounts")?;
 
-        // Step 8: Set return data if non-empty
+        // Step 7: Set return data if non-empty
         if size_of::<T::ReturnType>() > 0 {
             set_return_data(bytemuck::bytes_of(&ret));
         }
@@ -260,13 +274,11 @@ macro_rules! empty_star_frame_instruction {
     ($ix:ident, $accounts:ident) => {
         impl $crate::instruction::StarFrameInstruction for $ix {
             type ReturnType = ();
-            type TrailingData = ();
             type Accounts<'decode, 'arg> = $accounts;
 
             fn process(
                 _accounts: &mut Self::Accounts<'_, '_>,
                 _run_arg: Self::RunArg<'_>,
-                _trailing: Self::TrailingData,
                 _ctx: &mut $crate::context::Context,
             ) -> $crate::Result<Self::ReturnType> {
                 Ok(())
@@ -317,5 +329,44 @@ mod test {
     enum TestInstructionSet {
         Ix1(Ix1),
         Ix2(Ix2),
+    }
+
+    // Example of a proper Pod instruction
+    #[repr(C)]
+    #[derive(Copy, Clone, Pod, Zeroable)]
+    struct TransferInstruction {
+        pub recipient: Pubkey,
+        pub amount: u64,
+        pub memo: [u8; 32],    // Fixed-size memo (not String!)
+        pub memo_len: u8,      // Actual length of memo
+        pub _padding: [u8; 7], // Explicit padding to align to 8 bytes
+    }
+
+    impl TransferInstruction {
+        /// Helper to get the memo as a string slice
+        pub fn memo(&self) -> Result<&str> {
+            let len = self.memo_len as usize;
+            ensure!(len <= 32, "Invalid memo length");
+            std::str::from_utf8(&self.memo[..len]).map_err(|_| {
+                std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid UTF-8 in memo")
+            })
+        }
+    }
+
+    // This would normally be generated by #[star_frame_instruction]
+    impl InstructionArgs for TransferInstruction {
+        type DecodeArg<'a> = &'a Self;
+        type ValidateArg<'a> = &'a Self;
+        type RunArg<'a> = &'a Self;
+        type CleanupArg<'a> = &'a Self;
+
+        fn split_to_args(r: &mut Self) -> IxArgs<'_, Self> {
+            IxArgs {
+                decode: &*r,
+                validate: &*r,
+                run: &*r,
+                cleanup: &*r,
+            }
+        }
     }
 }

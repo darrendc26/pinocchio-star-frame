@@ -10,7 +10,7 @@ pub use pinocchio::{
 // bytemuck
 pub use bytemuck::{CheckedBitPattern, NoUninit, Pod, Zeroable};
 
-pub use borsh::{BorshDeserialize, BorshSerialize};
+// pub use borsh::{BorshDeserialize, BorshSerialize};
 
 // ensure derive macros are in scope
 pub use star_frame_proc::{zero_copy, InstructionToIdl, TypeToIdl};
