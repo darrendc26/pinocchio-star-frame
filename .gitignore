@@ -1,1 +1,11 @@
+.idea
+.anchor
+.DS_Store
 target
+**/clippy_target
+**/*.rs.bk
+node_modules
+test-ledger
+.vscode
+example_programs/**/idl.json
+rustc-ice-*
