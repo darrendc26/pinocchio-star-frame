@@ -1,7 +1,0 @@
-/home/darren/Desktop/solana-proj/pinocchio-star-frame/target/debug/deps/spl_associated_token_account_interface-7d16e46d9d3d6b32.d: /home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/lib.rs /home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/address.rs /home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/instruction.rs
-
-/home/darren/Desktop/solana-proj/pinocchio-star-frame/target/debug/deps/libspl_associated_token_account_interface-7d16e46d9d3d6b32.rmeta: /home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/lib.rs /home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/address.rs /home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/instruction.rs
-
-/home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/lib.rs:
-/home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/address.rs:
-/home/darren/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/spl-associated-token-account-interface-2.0.0/src/instruction.rs:
