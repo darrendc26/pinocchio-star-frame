@@ -403,3 +403,17 @@ pub mod state {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[allow(unused_imports)]
+    use super::*;
+
+    #[cfg(feature = "idl")]
+    #[test]
+    fn print_token_idl() -> Result<()> {
+        let idl = AssociatedToken::program_to_idl()?;
+        println!("{}", star_frame::serde_json::to_string_pretty(&idl)?);
+        Ok(())
+    }
+}
