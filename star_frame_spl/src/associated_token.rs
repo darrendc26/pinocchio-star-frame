@@ -330,7 +330,7 @@ pub mod state {
         fn init_account<const IF_NEEDED: bool>(
             &mut self,
             arg: InitAta<'a, WalletInfo, MintInfo>,
-            account_seeds: Option<Vec<&[u8]>>,
+            account_seeds: Option<&[&[u8]]>,
             ctx: &Context,
         ) -> Result<()> {
             let funder = ctx

@@ -22,7 +22,9 @@ borsh = { version = "1.5.7", features = ["derive"] }
 clap = { version = "4.5", features = ["derive", "env"] }
 solana-pubkey = "3.0.0"
 convert_case = "0.8.0"
-
+spl-associated-token-account-interface = "2.0.0"
+spl-token-interface = "2.0.0"
+solana-program-pack = "3.0.0"
 
 [profile.release]
 overflow-checks = true
