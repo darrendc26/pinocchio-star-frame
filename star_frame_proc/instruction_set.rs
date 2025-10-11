@@ -123,29 +123,27 @@ pub fn instruction_set_impl(item: ItemEnum) -> TokenStream {
 
     let dispatch_body = if variant_tys.is_empty() {
         quote! {
-            #prelude::bail!(#prelude::ProgramError::InvalidInstructionData, "No instructions in this instruction set")
-        }
+        Err(crate::MyError::NoInstructionsInSet.into())        }
     } else {
         quote! {
-            let maybe_discriminant_bytes =
-                #prelude::Advance::try_advance(&mut instruction_data, ::core::mem::size_of::<#discriminant_type>());
-            let discriminant_bytes = #prelude::ErrorInfo::ctx(maybe_discriminant_bytes, "Failed to read instruction discriminant bytes")?;
-            let discriminant = *#bytemuck::try_from_bytes(discriminant_bytes)?;
-            #[deny(unreachable_patterns)]
-            match discriminant {
-                #(
-                    <#variant_tys as #prelude::InstructionDiscriminant<#ident #ty_generics>>::DISCRIMINANT => {
-                        #[allow(unexpected_cfgs)]
-                        {
-                            #[cfg(any(feature = "log_ix_name", feature = "log-ix-name"))]
-                            #prelude::msg!(#ix_message);
+                let maybe_discriminant_bytes =
+                    #prelude::Advance::try_advance(&mut instruction_data, ::core::mem::size_of::<#discriminant_type>());
+                let discriminant_bytes = maybe_discriminant_bytes.map_err(|_| crate::MyError::ReadDiscriminantFailed)?;
+        let discriminant = *#bytemuck::try_from_bytes(discriminant_bytes).map_err(|_| crate::MyError::DiscriminantCastFailed)?;
+                match discriminant {
+                    #(
+                        <#variant_tys as #prelude::InstructionDiscriminant<#ident #ty_generics>>::DISCRIMINANT => {
+                            #[allow(unexpected_cfgs)]
+                            {
+                                #[cfg(any(feature = "log_ix_name", feature = "log-ix-name"))]
+                                #prelude::msg!(#ix_message);
+                            }
+                            <#variant_tys as #instruction>::process_from_raw(program_id, accounts, instruction_data)
                         }
-                        <#variant_tys as #instruction>::process_from_raw(program_id, accounts, instruction_data)
-                    }
-                )*
-                x => #prelude::bail!(#prelude::ProgramError::InvalidInstructionData, "Invalid ix discriminant: {:?}", x),
+                    )*
+                    _ => return Err(crate::MyError::InvalidDiscriminant.into()),
+                }
             }
-        }
     };
 
     // todo: better error messages for getting the discriminant and invalid discriminants

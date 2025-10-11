@@ -34,7 +34,9 @@ pub fn derive_get_seeds_impl(input: DeriveInput) -> TokenStream {
         .unwrap_or_default();
 
     let ident = &input.ident;
+    // ident is nothing but gets the identifier of the struct
     let wc_for = new_lifetime(&input.generics, Some("wc"));
+    // wc_for is a new lifetime for the where clause
     let (impl_generics, type_generics, where_clause) = input.generics.split_for_impl();
 
     if matches!(data_struct.fields, syn::Fields::Unnamed(_)) {
@@ -140,6 +142,8 @@ pub fn derive_get_seeds_impl(input: DeriveInput) -> TokenStream {
         })
     });
 
+    let array_size = data_struct.fields.len() + if seed_const.is_some() { 1 } else { 0 };
+
     let field_seeds = data_struct.fields.iter().map(|field| {
         let name = field.ident.as_ref().expect("Field must have an identifier");
         parse_quote!(self.#name.seed())
@@ -152,6 +156,7 @@ pub fn derive_get_seeds_impl(input: DeriveInput) -> TokenStream {
     quote! {
         #[automatically_derived]
         impl #impl_generics #prelude::GetSeeds for #ident #type_generics #where_clause {
+            const SEED_COUNT: usize = #array_size;
             fn seeds(&self) -> [&[u8]; #array_size] {
                 use #prelude::Seed;
                 [#(#seeds),*]

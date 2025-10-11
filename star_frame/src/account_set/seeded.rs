@@ -46,12 +46,15 @@ pub use star_frame_proc::GetSeeds;
 ///
 /// ```
 pub trait GetSeeds: Debug {
-    fn seeds(&self) -> [&[u8]; N];
+    const SEED_COUNT: usize;
+    fn seeds(&self) -> [&[u8]; Self::SEED_COUNT];
 }
 impl<T> GetSeeds for T
 where
     T: Seed + Debug,
 {
+        const SEED_COUNT: usize = 1;
+
     fn seeds(&self) -> [&[u8]; N] {
         vec![self.seed(), &[]]
     }
@@ -90,6 +93,7 @@ where
                 return seeds;
             }
         }
+        // here we need to use while loop to add arrays , need more research 
         seeds.push(bytes_of(&self.bump));
         seeds
     }
